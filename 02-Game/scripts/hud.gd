@@ -141,9 +141,10 @@ func _ready() -> void:
 func _on_chaos(v: float) -> void:
 	chaos_fill.size.x = 112.0 * v / 100.0
 	chaos_fill.color = Color(0.4, 0.9, 0.6).lerp(Color(0.95, 0.25, 0.25), v / 100.0)
-	# 失声灰化（阈值见大纲 9.1）
+	# 失声灰化（大纲 9.1：40 失一声／60 失两声／80 起仍剩一声）
+	# 与 GameState.available_slots() 严格一致——最后一个声部永远不会被灰掉
 	for i in range(3):
-		var lost := (v >= 80.0) or (v >= 60.0 and i >= 1) or (v >= 40.0 and i >= 2)
+		var lost := (v >= 60.0 and i >= 1) or (v >= 40.0 and i >= 2)
 		slot_boxes[i].color = Color(0.25, 0.28, 0.35, 0.35) if lost else Color(1, 1, 1, 0.16)
 		slot_labels[i].modulate.a = 0.35 if lost else 1.0
 
@@ -156,6 +157,19 @@ func _refresh_slots() -> void:
 # ---------- 特质库面板 ----------
 func _process(delta: float) -> void:
 	nav_cd = maxf(nav_cd - delta, 0.0)
+	# 操作提示自适应输入设备（键盘／Xbox 手柄）
+	var pad := GameState.input_device == "pad"
+	var prompt := PROMPT_PAD if pad else PROMPT_KB
+	if prompt_label.text != prompt:
+		prompt_label.text = prompt
+	var lh := LIBHINT_PAD if pad else LIBHINT_KB
+	if lib_hint.text != lh:
+		lib_hint.text = lh
+
+const PROMPT_KB := "A/D 移动 · Space 跳 · J/K/L 发音 · E 调声（换气点） · F 探测 · H 求助 · Tab 特质库 · M 音乐开关"
+const PROMPT_PAD := "左摇杆 移动 · A 跳 · X/B/Y 发音 · RB 调声（换气点） · LB 探测 · Back 求助 · Start 特质库"
+const LIBHINT_KB := "W/S 选特质 · A/D 选槽位 · E 装入 · Q 卸下 · J/K/L 快捷装入 · Tab 关闭"
+const LIBHINT_PAD := "十字键 选特质/槽位 · RB 装入 · Back 卸下 · X/B/Y 快捷装入 · Start 关闭"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("library"):
@@ -191,21 +205,34 @@ func _unhandled_input(event: InputEvent) -> void:
 		_refresh_lib()
 	elif event.is_action_pressed("tune_beat") or event.is_action_pressed("interact"):
 		GameState.equip(lib_slot, GameState.collected[lib_select])
+		nav_cd = 0.22
 		_refresh_lib()
 	elif event.is_action_pressed("drop"):
 		GameState.clear_slot(lib_slot)
+		nav_cd = 0.22
 		_refresh_lib()
+	elif GameState.collected.size() > 0:
+		# J/K/L 快捷装入：把选中特质直接装进声部槽 1／2／3（帮助文案里承诺过）
+		for n in range(3):
+			if event.is_action_pressed("voice_%d" % (n + 1)):
+				GameState.equip(n, GameState.collected[lib_select])
+				nav_cd = 0.22
+				_refresh_lib()
+				break
 	get_viewport().set_input_as_handled()
 
 func _refresh_lib() -> void:
 	lib_select = clampi(lib_select, 0, maxi(GameState.collected.size() - 1, 0))
 	lib_slot = clampi(lib_slot, 0, GameState.slots.size() - 1)
+	var avail := GameState.available_slots()
 	var slots_line := "声部槽："
 	for i in range(GameState.slots.size()):
 		var mark := "▶" if i == lib_slot else " "
 		var nm := GameState.trait_name(GameState.slots[i])
 		if nm == "":
 			nm = "（空）"
+		if i >= avail:
+			nm += "（失声）"
 		slots_line += " %s[%d]%s" % [mark, i + 1, nm]
 	lib_slot_label.text = slots_line
 	var lines := ""
@@ -221,14 +248,28 @@ func _refresh_lib() -> void:
 	lib_list.text = lines
 
 func show_phantom(text: String) -> void:
-	if phantom_tween:
-		phantom_tween.kill()
-	center_label.text = text
+	# 队列化但设上限：积压超过 2 条时丢弃最旧的——离开区域后不该还在"补播"
+	phantom_queue.append(text)
+	while phantom_queue.size() > 2:
+		phantom_queue.pop_front()
+	if not phantom_showing:
+		_next_phantom()
+
+var phantom_queue: Array = []
+var phantom_showing := false
+
+func _next_phantom() -> void:
+	if phantom_queue.is_empty():
+		phantom_showing = false
+		return
+	phantom_showing = true
+	center_label.text = phantom_queue.pop_front()
 	center_label.modulate.a = 0.0
 	phantom_tween = create_tween()
-	phantom_tween.tween_property(center_label, "modulate:a", 1.0, 0.6)
-	phantom_tween.tween_interval(2.6)
-	phantom_tween.tween_property(center_label, "modulate:a", 0.0, 1.2)
+	phantom_tween.tween_property(center_label, "modulate:a", 1.0, 0.5)
+	phantom_tween.tween_interval(2.0)
+	phantom_tween.tween_property(center_label, "modulate:a", 0.0, 0.9)
+	phantom_tween.tween_callback(_next_phantom)
 
 func show_trait_card(id: String) -> void:
 	if card_tween:

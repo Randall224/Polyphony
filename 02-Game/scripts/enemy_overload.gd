@@ -34,7 +34,8 @@ var anim_t := 0.0
 func _ready() -> void:
 	add_to_group("enemies")
 	collision_layer = 2
-	collision_mask = 1 | 4
+	collision_mask = 4   # 只与地形碰撞——失调体可以与玩家重叠（接触伤害靠距离判定），
+	                     # 否则会把玩家顶进墙角或粘在身上连续扣血
 	home_pos = position
 	toughness = max_toughness
 	var cs := CollisionShape2D.new()

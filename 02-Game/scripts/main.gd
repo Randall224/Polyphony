@@ -47,7 +47,17 @@ func _build_background() -> void:
 	sky_layer.add_child(sky)
 	add_child(sky_layer)
 
+	# ---- 中景视差（远山与废墟轮廓之间的层次）----
 	var par := ParallaxBackground.new()
+	var mid_layer := ParallaxLayer.new()
+	mid_layer.motion_scale = Vector2(0.5, 0.5)
+	mid_layer.motion_mirroring = Vector2(640, 0)
+	var mid := Sprite2D.new()
+	mid.texture = load("res://assets/bg/mid.png")
+	mid.centered = false
+	mid.position = Vector2(0, 310)
+	mid_layer.add_child(mid)
+	par.add_child(mid_layer)
 	var far_layer := ParallaxLayer.new()
 	far_layer.motion_scale = Vector2(0.25, 0.25)
 	far_layer.motion_mirroring = Vector2(640, 0)
@@ -86,88 +96,79 @@ func _build_background() -> void:
 
 # ---------- 关卡构建（横版剖面） ----------
 func _build_world() -> void:
-	# ---- 外边界 ----
-	_slab(-40, -40, WORLD_W + 80, 100, Color(0.13, 0.18, 0.27))       # 顶
-	_slab(-40, 1340, WORLD_W + 80, 100, Color(0.13, 0.18, 0.27))      # 底（安全底线）
-	_slab(-40, -40, 100, WORLD_H + 80, Color(0.13, 0.18, 0.27))       # 左
-	_slab(4740, -40, 100, WORLD_H + 80, Color(0.13, 0.18, 0.27))      # 右
+	# ---- 外边界（不给顶沿亮线，避免与地形拼接出假缝）----
+	var bed := Color(0.05, 0.065, 0.10)
+	_slab(-40, -40, WORLD_W + 80, 100, bed, false)       # 顶
+	_slab(-40, 1340, WORLD_W + 80, 100, bed, false)      # 底（安全底线）
+	_slab(-40, -40, 100, WORLD_H + 80, bed, false)       # 左
+	_slab(4740, -40, 100, WORLD_H + 80, bed, false)      # 右
 
-	# ---- 地形（实心地块，顶面即地表）----
-	var ground := Color(0.10, 0.14, 0.20)
-	_slab(-40, 940, 1600, 460, ground)        # 苏醒谷地＋教学＋噪声区基岩（x 至 1560）
-	_slab(1560, 880, 180, 320, ground)        # 谐音桥西段（桥墩落地）
-	_slab(1560, 1200, 350, 200, Color(0.06, 0.09, 0.14))   # 桥下深谷底（坠落缓冲，东行可爬回）
-	_slab(1830, 880, 80, 40, ground)          # 谐音桥东段（断口东侧悬段）
-	_slab(1910, 1000, 340, 400, ground)       # 止语凹地（低伏盆地）
-	_slab(2250, 940, 130, 460, ground)        # 回声环井沿
-	_slab(2380, 1280, 260, 120, Color(0.05, 0.08, 0.12))   # 井底
-	_slab(2640, 900, 410, 500, ground)        # 共鸣厅地面
-	_slab(3050, 800, 400, 600, ground)        # 轰鸣带脊地
-	_slab(3210, 700, 170, 100, ground)        # 轰鸣带高台（末音悬于其上）
-	_slab(3450, 940, 170, 460, ground)        # 幻声林地地面
-	_slab(3620, 1240, 180, 160, Color(0.05, 0.08, 0.12))   # 裂谷底
-	_slab(3800, 980, 600, 420, ground)        # 声骸之海洼地
-	_slab(4400, 920, 100, 480, ground)        # 塔阶一
-	_slab(4500, 860, 100, 540, ground)        # 塔阶二
-	_slab(4600, 800, 200, 600, ground)        # 塔阶三（出口）
+	# ---- 地形（实心地块：每区独立基色＋地砖肌理＋顶沿亮线，顶面即地表）----
+	_slab(60, 940, 600, 460, Color(0.07, 0.10, 0.16))       # 苏醒谷地
+	_slab(660, 940, 420, 460, Color(0.08, 0.11, 0.17))      # 教学段
+	_slab(1080, 940, 480, 460, Color(0.09, 0.115, 0.175))   # 岔路噪声区（偏灰）
+	_slab(1560, 880, 180, 320, Color(0.06, 0.09, 0.14))     # 谐音桥西段（桥墩落地）
+	_slab(1560, 1200, 350, 200, Color(0.05, 0.075, 0.115))  # 桥下深谷底（坠而不死，东行可爬回）
+	_slab(1830, 880, 80, 40, Color(0.06, 0.09, 0.14))       # 谐音桥东段（断口东侧悬段）
+	_slab(1910, 1000, 340, 400, Color(0.035, 0.05, 0.08))   # 止语凹地（近乎全黑）
+	_slab(2250, 940, 130, 460, Color(0.06, 0.12, 0.18))     # 回声环井沿（青）
+	_slab(2380, 1280, 260, 120, Color(0.05, 0.08, 0.12))    # 井底
+	_slab(2640, 900, 410, 500, Color(0.08, 0.12, 0.17))     # 共鸣厅
+	_slab(3050, 800, 400, 600, Color(0.115, 0.075, 0.08))   # 轰鸣带脊地（暗红）
+	_slab(3210, 700, 170, 100, Color(0.125, 0.08, 0.085))   # 高台（末音悬于其上）
+	_slab(3450, 940, 170, 460, Color(0.075, 0.07, 0.15))    # 幻声林地（蓝紫）
+	_slab(3620, 1240, 180, 160, Color(0.05, 0.075, 0.115))  # 裂谷底
+	_slab(3800, 980, 600, 420, Color(0.10, 0.13, 0.17))     # 声骸之海（尸白蓝）
+	_slab(4400, 920, 100, 480, Color(0.12, 0.15, 0.19))     # 塔阶一（渐亮上行）
+	_slab(4500, 860, 100, 540, Color(0.13, 0.16, 0.20))     # 塔阶二
+	_slab(4600, 800, 140, 600, Color(0.14, 0.17, 0.21))     # 塔阶三（出口）
 
-	# ---- 平台（碎石／井梯／踏步，全部单向——可从下方跳穿，消除"跳不上去"）----
-	var plat := Color(0.16, 0.21, 0.30)
-	# 噪声区碎石上行
-	_slab(1130, 880, 110, 26, plat, true)
-	_slab(1290, 820, 110, 26, plat, true)
-	_slab(1400, 760, 110, 26, plat, true)
-	# 桥下深谷回程梯（坠落者的路）
-	_slab(1835, 1140, 75, 26, plat, true)
-	_slab(1845, 1080, 60, 26, plat, true)
-	_slab(1855, 1020, 50, 26, plat, true)
+	# ---- 平台（全部实体——可以从下方穿过属于穿模；之字排列保证每级都能从侧面跳上）----
+	var plat := Color(0.15, 0.20, 0.28)
+	# 噪声区碎石上行（西侧逐级跳）
+	_slab(1130, 880, 110, 26, plat)
+	_slab(1290, 820, 110, 26, plat)
+	_slab(1400, 760, 110, 26, plat)
+	# 桥下深谷回程梯（坠落者的路，之字避开桥墩爬回盆地）
+	_slab(1750, 1140, 70, 26, plat)
+	_slab(1830, 1080, 75, 26, plat)
+	_slab(1750, 1020, 70, 26, plat)
 	# 盆地→桥东段回程踏步
-	_slab(1900, 940, 50, 26, plat, true)
-	# 井梯（下探＋东壁爬出）
-	_slab(2400, 1060, 100, 26, plat, true)
-	_slab(2540, 1120, 100, 26, plat, true)
-	_slab(2420, 1180, 100, 26, plat, true)
-	_slab(2520, 1240, 100, 26, plat, true)
-	_slab(2570, 1060, 70, 26, plat, true)
-	_slab(2570, 1000, 70, 26, plat, true)
-	_slab(2570, 950, 70, 26, plat, true)
+	_slab(1915, 940, 50, 26, plat)
+	# 回声环井梯（之字爬出东口）
+	_slab(2390, 1220, 80, 26, plat)
+	_slab(2540, 1160, 80, 26, plat)
+	_slab(2390, 1100, 80, 26, plat)
+	_slab(2540, 1040, 80, 26, plat)
+	_slab(2390, 980, 80, 26, plat)
+	_slab(2540, 920, 80, 26, plat)
 	# 轰鸣带踏步（厅→脊→台）
-	_slab(2980, 840, 80, 26, plat, true)
-	_slab(3130, 740, 80, 26, plat, true)
-	# 脊地东壁回程踏步（幻声林地返回轰鸣带）
-	_slab(3390, 900, 60, 26, plat, true)
-	_slab(3390, 840, 60, 26, plat, true)
-	# 裂谷双梯（西壁回地面／东壁上海洼）
-	_slab(3625, 1180, 90, 26, plat, true)
-	_slab(3625, 1120, 60, 26, plat, true)
-	_slab(3625, 1060, 60, 26, plat, true)
-	_slab(3625, 1000, 55, 26, plat, true)
-	_slab(3740, 1180, 60, 26, plat, true)
-	_slab(3740, 1120, 60, 26, plat, true)
-	_slab(3740, 1060, 60, 26, plat, true)
-	_slab(3745, 1010, 55, 26, plat, true)
-
-	# ---- 分区色调罩染（气氛层）----
-	_tint(1910, 780, 340, 240, Color(0.0, 0.0, 0.02, 0.55))     # 止语凹地：压暗
-	_tint(3050, 700, 400, 260, Color(0.20, 0.04, 0.04, 0.25))   # 轰鸣带：暗红
-	_tint(3450, 700, 350, 260, Color(0.10, 0.05, 0.22, 0.30))   # 幻声林地：蓝紫
-	_tint(3800, 700, 600, 300, Color(0.55, 0.62, 0.70, 0.14))   # 声骸之海：尸白
-	_tint(4400, 700, 400, 260, Color(0.85, 0.90, 0.95, 0.10))   # 塔阶：渐亮
+	_slab(2970, 840, 78, 26, plat)
+	_slab(3130, 740, 80, 26, plat)
+	# 脊地东壁回程踏步（林地→脊地，错位两跳，从侧面跳上）
+	_slab(3560, 900, 60, 26, plat)
+	_slab(3452, 840, 46, 26, plat)
+	# 裂谷之字梯（西回地面／东上海洼）
+	_slab(3625, 1180, 65, 26, plat)
+	_slab(3725, 1120, 65, 26, plat)
+	_slab(3625, 1060, 65, 26, plat)
+	_slab(3700, 1000, 60, 26, plat)
 
 	# ---- 回响点 ----
 	_respawn(100, 915)      # R1·苏醒谷地
 	_respawn(3900, 955)     # R2·声骸之海（Boss 前）
 
 	# ---- 特质全量分布（9 颗收集＋原声 Boss 掉落）——收集方式按特质表"获取语法"----
-	_pickup("chuxiang", 560, 900)                       # ①初响：触碰即得（教走与触碰）
-	_pickup("zhongsheng", 1450, 715, 0, "detect")       # ②众声：碎石顶——共鸣探测才凝出实体
-	_pickup("xieyin", 1785, 830, 2)                     # ③谐音：断口上方——集齐两特质才显形
-	_pickup("zhiyu", 2100, 960, 0, "silence")           # ④止语：站定不出声它才接受你
-	_pickup("raoliang", 2460, 1245, 0, "detect")        # ⑤绕梁：井底——用探测听出自己的回声
-	_pickup("pinlvshu", 3080, 755, 0, "machine")        # ⑥频率梳：回声机音序应答
-	_pickup("gongzhenqiang", 2900, 860, 0, "tune")      # ⑦共振腔：配出空腔要的属性组合
-	_pickup("moyin", 3340, 650)                         # ⑧末音：高台之上（E3 把守）
-	_pickup("shiyu", 3685, 1200)                        # ⑨失语的记忆：相信幻声，跳进裂谷
+	# （悬空高度统一落在站立可触范围，只有"悬着"的末音与断口上的谐音保留跳跃）
+	_pickup("chuxiang", 560, 918)                       # ①初响：触碰即得（教走与触碰）
+	_pickup("zhongsheng", 1450, 738, 0, "detect")       # ②众声：碎石顶——共鸣探测才凝出实体
+	_pickup("xieyin", 1785, 836, 2)                     # ③谐音：断口上方——集齐两特质才显形
+	_pickup("zhiyu", 2100, 978, 0, "silence")           # ④止语：站定不出声它才接受你
+	_pickup("raoliang", 2500, 1258, 0, "detect")        # ⑤绕梁：井底——用探测听出自己的回声
+	_pickup("pinlvshu", 3080, 778, 0, "machine")        # ⑥频率梳：回声机音序应答
+	_pickup("gongzhenqiang", 2900, 878, 0, "tune")      # ⑦共振腔：配出空腔要的属性组合
+	_pickup("moyin", 3340, 678)                         # ⑧末音：高台之上（悬着，E3 把守）
+	_pickup("shiyu", 3685, 1218)                        # ⑨失语的记忆：相信幻声，跳进裂谷
 	# ★原声：声骸之海 Boss 净化后掉落（见 _on_boss_purified）
 
 	# ---- 回声机（频率梳挑战：音序应答）----
@@ -192,7 +193,7 @@ func _build_world() -> void:
 
 	# ---- 分幕叙事（每幕一句，其余文本都为它服务）----
 	_phantom(640, 900, "废墟渐渐有了声音。冻在半空的声纹，像被凝固的呼喊。")
-	_phantom(1090, 900, "（前面挤满了声音——几百个字、几百段旋律，谁也听不清谁。）")
+	_phantom(1020, 900, "（前面挤满了声音——几百个字、几百段旋律，谁也听不清谁。）")
 	_phantom(1520, 900, "（桥的中段空了。也许有什么东西，一直在替你搭桥。）")
 	_phantom(2310, 910, "（一口井。你沿着井壁走下去，然后听见——你的脚步声，正从井的另一侧走回来。）")
 	_phantom(2760, 880, "（厅堂尽头立着一只空腔。它在等一个和它一模一样的声音。）")
@@ -206,23 +207,24 @@ func _build_world() -> void:
 	# ---- 切片结束区（塔阶顶）----
 	_end_zone(4650, 730)
 
-	# ---- 分区布景 ----
-	_decos([[250, 926, "deco_pillar"], [430, 926, "deco_wave1"], [540, 926, "deco_pillar"],
-		[90, 926, "deco_wave2"], [650, 926, "deco_wave2"], [940, 926, "deco_pillar"]])
-	_decos([[1120, 926, "deco_wave1"], [1210, 926, "deco_wave2"], [1330, 926, "deco_wave1"],
-		[1175, 866, "deco_wave1"], [1345, 806, "deco_wave2"], [1445, 746, "deco_wave1"],
-		[1490, 926, "deco_wave2"]])
-	_decos([[1580, 866, "deco_pillar"], [1720, 866, "deco_pillar"], [1850, 866, "deco_pillar"]])
-	_decos([[1950, 986, "deco_pillar"]])
-	_decos([[2280, 926, "deco_pillar"], [2350, 926, "deco_pillar"]])
-	_decos([[2420, 1266, "deco_wave1"], [2590, 1266, "deco_wave2"]])
-	_decos([[2700, 886, "deco_container"], [2770, 886, "deco_container"], [2840, 886, "deco_pillar"],
-		[2990, 886, "deco_container"], [3030, 886, "deco_wave1"]])
-	_decos([[3140, 786, "deco_container"], [3400, 786, "deco_container"], [3300, 686, "deco_container"]])
-	_decos([[3480, 926, "deco_wave1"], [3570, 926, "deco_wave2"], [3440, 926, "deco_pillar"]])
-	_decos([[3860, 966, "deco_container"], [3960, 966, "deco_wave1"], [4060, 966, "deco_container"],
-		[4260, 966, "deco_wave2"], [4360, 966, "deco_container"], [4000, 966, "deco_wave1"]])
-	_decos([[4460, 906, "deco_pillar"], [4560, 846, "deco_pillar"], [4660, 786, "deco_pillar"]])
+	# ---- 分区布景（y＝所在表面高度，贴图按真实高度落地；柱／容器有碰撞，
+	#      声纹是冻结的声音——可穿行；桥栏残柱放行避免堵落点）----
+	_decos([[250, 940, "deco_pillar", true], [430, 940, "deco_wave1"], [540, 940, "deco_pillar", true],
+		[90, 940, "deco_wave2"], [650, 940, "deco_wave2"], [940, 940, "deco_pillar", true]])
+	_decos([[1120, 940, "deco_wave1"], [1210, 940, "deco_wave2"], [1330, 940, "deco_wave1"],
+		[1175, 880, "deco_wave1"], [1345, 820, "deco_wave2"], [1445, 760, "deco_wave1"],
+		[1490, 940, "deco_wave2"]])
+	_decos([[1568, 880, "deco_pillar", false], [1732, 880, "deco_pillar", false], [1850, 880, "deco_pillar", false]])
+	_decos([[1950, 1000, "deco_pillar", true]])
+	_decos([[2280, 940, "deco_pillar", false], [2350, 940, "deco_pillar", false]])   # 井沿残柱（放行，井沿太窄）
+	_decos([[2420, 1280, "deco_wave1"], [2590, 1280, "deco_wave2"]])
+	_decos([[2700, 900, "deco_container", true], [2770, 900, "deco_container", true], [2840, 900, "deco_pillar", true],
+		[2990, 900, "deco_container", true], [3030, 900, "deco_wave1"]])
+	_decos([[3140, 800, "deco_container", true], [3400, 800, "deco_container", true], [3296, 700, "deco_container", true]])
+	_decos([[3480, 940, "deco_wave1"], [3570, 940, "deco_wave2"], [3475, 940, "deco_pillar", false]])
+	_decos([[3860, 980, "deco_container", true], [3960, 980, "deco_wave1"], [4060, 980, "deco_container", true],
+		[4260, 980, "deco_wave2"], [4360, 980, "deco_container", true], [4000, 980, "deco_wave1"]])
+	_decos([[4460, 920, "deco_pillar", true], [4560, 860, "deco_pillar", true], [4660, 800, "deco_pillar", true]])
 
 	# ---- 痕迹（拖拽痕：从苏醒处铺向废墟深处，另一半通向塔阶）----
 	for t in [[130, 928, 280, 12], [480, 928, 180, 12], [1080, 928, 280, 12],
@@ -236,13 +238,13 @@ func _build_world() -> void:
 		tr.position = Vector2(t[0], t[1])
 		add_child(tr)
 
-	# ---- 碑文×3 ----
-	_tablet(1100, 928, "碑①——字迹几乎磨平了，只剩一个词还认得出：听。")
-	_tablet(2300, 928, "碑②——回声不辨新旧。")
-	_tablet(4440, 966, "碑③——路。")
+	# ---- 碑文×3（实体石碑，y＝所在表面）----
+	_tablet(1100, 940, "碑①——字迹几乎磨平了，只剩一个词还认得出：听。")
+	_tablet(2300, 940, "碑②——回声不辨新旧。")
+	_tablet(4440, 980, "碑③——路。")
 
 # ---------- 构建工具 ----------
-func _slab(x: float, y: float, w: float, h: float, col: Color, one_way := false) -> void:
+func _slab(x: float, y: float, w: float, h: float, col: Color, edge := true) -> void:
 	var body := StaticBody2D.new()
 	body.collision_layer = 4
 	body.position = Vector2(x + w / 2.0, y + h / 2.0)
@@ -250,35 +252,68 @@ func _slab(x: float, y: float, w: float, h: float, col: Color, one_way := false)
 	var sh := RectangleShape2D.new()
 	sh.size = Vector2(w, h)
 	cs.shape = sh
-	cs.one_way_collision = one_way
-	cs.one_way_collision_margin = 8.0
 	body.add_child(cs)
-	var poly := Polygon2D.new()
-	poly.polygon = PackedVector2Array([
-		Vector2(-w / 2.0, -h / 2.0), Vector2(w / 2.0, -h / 2.0),
-		Vector2(w / 2.0, h / 2.0), Vector2(-w / 2.0, h / 2.0)])
-	poly.color = col
-	body.add_child(poly)
-	var edge := ColorRect.new()
-	edge.color = Color(0.24, 0.34, 0.45, 0.9)
-	edge.position = Vector2(-w / 2.0, -h / 2.0)
-	edge.size = Vector2(w, 2)
-	body.add_child(edge)
 	add_child(body)
-
-func _tint(x: float, y: float, w: float, h: float, col: Color) -> void:
+	# 基色（分区色调直接烘进地表）
 	var poly := Polygon2D.new()
 	poly.polygon = PackedVector2Array([
 		Vector2(x, y), Vector2(x + w, y), Vector2(x + w, y + h), Vector2(x, y + h)])
 	poly.color = col
 	add_child(poly)
+	# 地砖肌理：薄块用平台砖，厚地形用表砖＋填充砖
+	if h < 40.0:
+		_tile_strip("tile_platform", x, y, w, 10.0, Color(1, 1, 1, 0.95))
+	else:
+		_tile_strip("tile_ground_top", x, y, w, 16.0, Color(1, 1, 1, 0.55))
+		if h > 40.0:
+			_tile_strip("tile_ground_fill", x, y + 16.0, w, h - 16.0, Color(1, 1, 1, 0.30))
+		# 顶沿亮线＋沿下阴影（勾出地形轮廓）
+		if edge:
+			var top := ColorRect.new()
+			top.color = Color(0.34, 0.44, 0.54, 0.95)
+			top.position = Vector2(x, y)
+			top.size = Vector2(w, 2)
+			add_child(top)
+			if h > 40.0:
+				var shade := ColorRect.new()
+				shade.color = Color(0, 0, 0, 0.22)
+				shade.position = Vector2(x, y + 16.0)
+				shade.size = Vector2(w, 2)
+				add_child(shade)
+
+func _tile_strip(tex: String, x: float, y: float, w: float, h: float, mod: Color) -> void:
+	if h <= 0.0:
+		return
+	var s := Sprite2D.new()
+	s.texture = T[tex]
+	s.centered = false
+	s.region_enabled = true
+	s.region_rect = Rect2(0, 0, w, h)
+	s.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	s.position = Vector2(x, y)
+	s.modulate = mod
+	add_child(s)
 
 func _decos(list: Array) -> void:
 	for d in list:
+		var tex: String = d[2]
 		var s := Sprite2D.new()
-		s.texture = T[d[2]]
-		s.position = Vector2(d[0], d[1])
+		s.texture = T[tex]
+		# 落地：y 参数＝所在表面，贴图按自身高度站立（下沉 2px 咬住地面）
+		s.position = Vector2(d[0], d[1] - T[tex].get_height() / 2.0 + 2.0)
 		add_child(s)
+		# 柱／容器是实体（能撞上）；声纹可穿行；第 4 项可显式覆盖
+		var solid: bool = d[3] if d.size() > 3 else (tex == "deco_pillar" or tex == "deco_container")
+		if solid:
+			var body := StaticBody2D.new()
+			body.collision_layer = 4
+			body.position = s.position
+			var cs := CollisionShape2D.new()
+			var sh := RectangleShape2D.new()
+			sh.size = Vector2(T[tex].get_width() - 2.0, T[tex].get_height() - 4.0)
+			cs.shape = sh
+			body.add_child(cs)
+			add_child(body)
 
 func _silence_zone(x: float, y: float, w: float, h: float) -> void:
 	var area := Area2D.new()
@@ -294,7 +329,12 @@ func _silence_zone(x: float, y: float, w: float, h: float) -> void:
 	area.body_entered.connect(func(body):
 		if body.is_in_group("player"):
 			AudioDirector.set_music_duck(true)
-			hud.show_phantom("安静——这里在替你听。"))
+			if not area.get_meta("cool", false):
+				area.set_meta("cool", true)
+				hud.show_phantom("安静——这里在替你听。")
+				get_tree().create_timer(20.0).timeout.connect(func():
+					if is_instance_valid(area):
+						area.set_meta("cool", false)))
 	area.body_exited.connect(func(body):
 		if body.is_in_group("player"):
 			AudioDirector.set_music_duck(false))
@@ -314,6 +354,9 @@ var machine_input: Array = []
 var machine_in := false
 var machine_solved := false
 var machine_busy := false
+var machine_labels: Array = []
+const MACHINE_KEY_NAMES := ["J / X", "K / B", "L / Y"]
+const MACHINE_KEY_COLS := [Color(0.55, 0.85, 1.0), Color(1.0, 0.8, 0.45), Color(0.7, 1.0, 0.85)]
 
 func _machine_zone(x: float, y: float) -> void:
 	var area := Area2D.new()
@@ -330,13 +373,30 @@ func _machine_zone(x: float, y: float) -> void:
 		if body.is_in_group("player"):
 			machine_in = true
 			if not machine_solved:
+				_machine_show_keys()
 				if machine_seq.is_empty():
 					_machine_new_seq()
-				hint("回声机卡住了。它哼了一串音——用同样的音序回答它。（J／K／L）")
+				hint("回声机卡住了。看它点亮哪个键位牌，就用哪个键回答。（J／K／L）")
 				_machine_hum())
 	area.body_exited.connect(func(body):
 		if body.is_in_group("player"):
-			machine_in = false)
+			machine_in = false
+			for l in machine_labels:
+				l.visible = false)
+
+## 键位牌：三个键各自颜色＋对应音——哼哪个音亮哪个牌，按哪个键闪哪个牌
+func _machine_show_keys() -> void:
+	if machine_labels.is_empty():
+		for i in range(3):
+			var l := Label.new()
+			l.text = MACHINE_KEY_NAMES[i]
+			l.add_theme_font_size_override("font_size", 8)
+			l.add_theme_color_override("font_color", MACHINE_KEY_COLS[i])
+			l.position = Vector2(3092 + i * 28, 714)
+			add_child(l)
+			machine_labels.append(l)
+	for l in machine_labels:
+		l.visible = true
 
 ## 每次挑战生成 4 音序列（三音阶随机）
 func _machine_new_seq() -> void:
@@ -359,8 +419,15 @@ func _machine_hum() -> void:
 	end.timeout.connect(func(): machine_busy = false)
 
 func _machine_noteVisual(note: int) -> void:
+	# 键位牌高亮＋音点浮升＋该键专属音高（看与听都能对应）
+	if machine_labels.size() == 3:
+		var l: Label = machine_labels[note - 1]
+		l.modulate = Color(2.2, 2.2, 2.2, 1)
+		var twl := create_tween()
+		twl.tween_property(l, "modulate", Color(1, 1, 1, 1), 0.45)
 	var s := Sprite2D.new()
 	s.texture = T["trait_dot"] if note == 1 else (T["trait_dot2"] if note == 2 else T["glow"])
+	s.modulate = MACHINE_KEY_COLS[note - 1]
 	s.position = Vector2(3130, 740)
 	s.scale = Vector2(1.6, 1.6)
 	add_child(s)
@@ -374,6 +441,7 @@ func _machine_press(note: int) -> void:
 	if not machine_in or machine_solved or machine_busy:
 		return
 	machine_input.append(note)
+	AudioDirector.sfx_play("collect%d" % note)   # 每个键的确认音＝它对应的音高
 	_machine_noteVisual(note)
 	if machine_input.size() < machine_seq.size():
 		return
@@ -385,7 +453,7 @@ func _machine_press(note: int) -> void:
 				p.call("set_unlocked")
 		hint("回声机松开了——梳子从卡住的齿轮间落了下来。")
 	else:
-		hint("不对。它把那串音重新哼了一遍——再听。")
+		hint("不对。它把那串音重新哼了一遍——再看一次键位牌。")
 		_machine_hum()
 
 # ---------- 空腔（共振腔：属性配平） ----------
@@ -492,20 +560,27 @@ func _respawn(x: float, y: float) -> void:
 	add_child(area)
 
 func _phantom(x: float, y: float, text: String) -> void:
+	_add_trigger(x, y, 60.0, text, 20.0)
+
+func _add_trigger(x: float, y: float, radius: float, text: String, cooldown: float) -> void:
 	var area := Area2D.new()
 	area.position = Vector2(x, y)
 	area.collision_layer = 0
 	area.collision_mask = 1
 	var cs := CollisionShape2D.new()
 	var sh := CircleShape2D.new()
-	sh.radius = 60.0
+	sh.radius = radius
 	cs.shape = sh
 	area.add_child(cs)
 	add_child(area)
+	# 可重复：进入触发一次，冷却（默认 20s）后再次进入可重听
 	area.body_entered.connect(func(body):
-		if body.is_in_group("player") and not area.get_meta("done", false):
-			area.set_meta("done", true)
-			hud.show_phantom(text))
+		if body.is_in_group("player") and not area.get_meta("cool", false):
+			area.set_meta("cool", true)
+			hud.show_phantom(text)
+			get_tree().create_timer(cooldown).timeout.connect(func():
+				if is_instance_valid(area):
+					area.set_meta("cool", false)))
 
 func _end_zone(x: float, y: float) -> void:
 	var area := Area2D.new()
@@ -571,14 +646,23 @@ func _show_intro() -> void:
 	tw.tween_property(blackout, "color:a", 0.0, 2.6)
 	tw.tween_callback(func(): hud.show_phantom("你已经来过这里。"))
 
-func _tablet(x: float, y: float, text: String) -> void:
+func _tablet(x: float, surface_y: float, text: String) -> void:
 	var s := Sprite2D.new()
 	s.texture = T["deco_pillar"]
 	s.scale = Vector2(0.8, 0.8)
-	s.position = Vector2(x, y)
+	s.position = Vector2(x, surface_y - T["deco_pillar"].get_height() * 0.4 + 2.0)
 	add_child(s)
+	var body := StaticBody2D.new()
+	body.collision_layer = 4
+	body.position = s.position
+	var bcs := CollisionShape2D.new()
+	var bsh := RectangleShape2D.new()
+	bsh.size = Vector2(T["deco_pillar"].get_width() * 0.8, T["deco_pillar"].get_height() * 0.8 - 4.0)
+	bcs.shape = bsh
+	body.add_child(bcs)
+	add_child(body)
 	var area := Area2D.new()
-	area.position = Vector2(x, y)
+	area.position = Vector2(x, surface_y - 20.0)
 	area.collision_layer = 0
 	area.collision_mask = 1
 	var cs := CollisionShape2D.new()
@@ -588,9 +672,12 @@ func _tablet(x: float, y: float, text: String) -> void:
 	area.add_child(cs)
 	add_child(area)
 	area.body_entered.connect(func(body):
-		if body.is_in_group("player") and not area.get_meta("done", false):
-			area.set_meta("done", true)
-			hud.show_phantom(text))
+		if body.is_in_group("player") and not area.get_meta("cool", false):
+			area.set_meta("cool", true)
+			hud.show_phantom(text)
+			get_tree().create_timer(20.0).timeout.connect(func():
+				if is_instance_valid(area):
+					area.set_meta("cool", false)))
 
 # ---------- 玩法响应 ----------
 func hit_stop(duration: float) -> void:
@@ -612,6 +699,44 @@ func hint(text: String) -> void:
 	hint_cd = 4.0
 	hud.show_phantom(text)
 
+## 求助（H／Back）：报告附近最近的机关怎么解——应玩家请求的重复提示
+func help_hint(pos: Vector2) -> void:
+	# 1) 附近未收集的条件型特质
+	var best: Node2D = null
+	var best_d := 180.0
+	for p in get_tree().get_nodes_in_group("pickups"):
+		if p.get("req") == "" or p.get("_collected"):
+			continue
+		var d: float = p.global_position.distance_to(pos)
+		if d < best_d:
+			best_d = d
+			best = p
+	if best != null:
+		var req: String = best.get("req")
+		match req:
+			"detect":
+				hint("【%s】用共鸣探测（F／LB）——它会从杂音里凝出来，几秒内伸手碰它。" % GameState.trait_name(best.get("trait_id")))
+			"silence":
+				hint("【%s】站定，三秒内不出任何声音，它会接受你。" % GameState.trait_name(best.get("trait_id")))
+			"machine":
+				hint("【%s】听回声机哼出的四个音，用 J／K／L（X／B／Y）按同样顺序回答。" % GameState.trait_name(best.get("trait_id")))
+			"tune":
+				hint("【%s】按 Tab 开特质库，把声部槽配成空腔报出的三条属性组合。" % GameState.trait_name(best.get("trait_id")))
+		return
+	# 2) 回声机／空腔（特质还没显形的挑战本体）
+	if machine_in and not machine_solved:
+		hint("回声机：听它哼的四个音，用 J／K／L（X／B／Y）按序回答。")
+		return
+	if tune_in and not tune_solved:
+		hint("空腔：" + (_tune_target_text() if not tune_target.is_empty() else "先攒够三个声音再来。"))
+		return
+	# 3) 谐音门槛
+	for p in get_tree().get_nodes_in_group("pickups"):
+		if p.get("trait_id") == "xieyin" and p.global_position.distance_to(pos) < 180.0:
+			hint("谐音要两个声音同时在场才显形——先去收集别的特质，再回到断桥。")
+			return
+	hint("（附近没有正在等你的机关。跟着痕迹走，或按 F 探测试试。）")
+
 func spawn_shot(pos: Vector2, dir: Vector2, dmg: float, speed: float, life: float) -> void:
 	var shot := Area2D.new()
 	shot.set_script(load("res://scripts/voice_projectile.gd"))
@@ -625,7 +750,7 @@ func spawn_shot(pos: Vector2, dir: Vector2, dmg: float, speed: float, life: floa
 func spawn_burst(pos: Vector2, facing: Vector2, count: int, dmg: float, speed: float) -> void:
 	for i in range(count):
 		var t := get_tree().create_timer(0.12 * i)
-		t.timeout.connect(func(): spawn_shot(pos, facing, dmg, speed, 0.6))
+		t.timeout.connect(func(): spawn_shot(pos, facing, dmg, speed, 0.28))
 
 func pull_enemies(pos: Vector2, radius: float) -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):

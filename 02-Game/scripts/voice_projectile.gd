@@ -16,6 +16,7 @@ func _ready() -> void:
 	add_child(cs)
 	var sprite := Sprite2D.new()
 	sprite.texture = load("res://assets/sprites/wave_shot.png")
+	sprite.scale = Vector2(1.6, 1.6)   # 声波而不是子弹：更大更钝
 	add_child(sprite)
 	body_entered.connect(_on_body_entered)
 

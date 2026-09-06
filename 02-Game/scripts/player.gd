@@ -40,6 +40,16 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump") and coyote > 0.0:
 		velocity.y = JUMP_V
 		coyote = 0.0
+	# 调声与探测走轮询＋边沿检测：RT/LT 是模拟轴，事件驱动会连发多次
+	if Input.is_action_just_pressed("tune_beat") and can_tune():
+		if AudioDirector.breath_window_open():
+			GameState.vent()           # 调声：换气点输入，排解自身失调
+			GameState.tune_ok_count += 1
+			AudioDirector.sfx_play("tune_ok")
+	if Input.is_action_just_pressed("detect") and world != null:
+		world.call("detect_pulse", global_position)
+	if Input.is_action_just_pressed("help") and world != null:
+		world.call("help_hint", global_position)
 	move_and_slide()
 	if dir != 0.0:
 		facing = Vector2(signf(dir), 0)
@@ -72,21 +82,21 @@ func can_tune() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if GameState.lib_open:
 		return   # 特质库打开时，发音输入交给库面板
+	# 回声机答题中：J/K/L/X/B/Y 只属于机关——不发音、不攻击（否则键位语义混乱）
+	if world != null and world.get("machine_in") and not world.get("machine_solved"):
+		return
 	for i in range(GameState.SLOT_CAP):
 		if event.is_action_pressed("voice_%d" % (i + 1)):
 			voice(i)
 			return
-	if event.is_action_pressed("tune_beat") and can_tune():
-		if AudioDirector.breath_window_open():
-			GameState.vent()           # 调声：换气点输入，排解自身失调
-			GameState.tune_ok_count += 1
-			AudioDirector.sfx_play("tune_ok")
-	if event.is_action_pressed("detect") and world != null:
-		world.call("detect_pulse", global_position)
 
 func voice(slot: int) -> void:
 	var id: String = GameState.slot_trait(slot)
 	if id == "" or world == null:
+		return
+	# 失声槽位：高失调下后位声部发不出声（灰化的槽是真哑的）
+	if slot >= GameState.available_slots():
+		world.call("hint", "（这一声部已经失了——在换气点调声，或用还亮着的声部。）")
 		return
 	# 过载使用：连续同一发音第 4 次起，每次 +4 失调
 	if last_voice == id:
@@ -109,22 +119,23 @@ func voice(slot: int) -> void:
 
 	match energy:
 		"release":
-			# 放：攻击声部
+			# 放：攻击声部——全部是"近距离喊声"（短射程声波），不是子弹
+			# 快调＝贴身三连喊；中调＝一声横扫；慢调＝远距重声（唯一的长射程）
 			if tempo == "fast":
 				world.call("spawn_burst", global_position + facing * 8.0, facing, 3, 5.0, 340.0)
 			elif tempo == "slow":
 				world.call("spawn_shot", global_position + facing * 8.0, facing, 18.0, 150.0, 1.6)
 			elif fragile:
 				# 脆结构：扇形三向散（覆盖广但每发弱，且每次自增失调）
-				for a in [-0.25, 0.0, 0.25]:
-					world.call("spawn_shot", global_position + facing * 8.0, facing.rotated(a), 5.0, 300.0, 0.9)
+				for a in [-0.35, 0.0, 0.35]:
+					world.call("spawn_shot", global_position + facing * 8.0, facing.rotated(a), 5.0, 300.0, 0.45)
 			else:
-				world.call("spawn_shot", global_position + facing * 8.0, facing, 10.0, 300.0, 1.0)
+				world.call("spawn_shot", global_position + facing * 8.0, facing, 10.0, 300.0, 0.55)
 		"absorb":
 			# 收：回声牵引——把身前一片的失调体拉向你，僵直中的会被拉近
 			world.call("pull_enemies", global_position + facing * 60.0, 170.0)
 			if tempo == "slow":
-				world.call("spawn_shot", global_position + facing * 8.0, facing, 12.0, 200.0, 1.2)
+				world.call("spawn_shot", global_position + facing * 8.0, facing, 12.0, 200.0, 0.8)
 		"neutral":
 			# 静：安抚脉冲——周围失调体脱离敌对；僵直中的被当场净化
 			world.call("neutral_pulse", global_position)
@@ -151,7 +162,8 @@ func hit(amount: float, from_pos: Vector2) -> void:
 	Input.start_joy_vibration(0, 0.2, 0.5, 0.25)
 	if world:
 		world.call("shake", 2.5)
-	velocity += (global_position - from_pos).normalized() * 180.0
+	velocity += (global_position - from_pos).normalized() * 220.0
+	velocity.y = minf(velocity.y, -140.0)   # 向上弹开：脱离粘着，给逃跑窗口
 	hurt_flash()
 	if shield > 0.0:
 		invuln = 0.5

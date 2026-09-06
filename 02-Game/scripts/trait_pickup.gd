@@ -16,6 +16,7 @@ var req := ""
 var reveal_t := 0.0      # detect 显形剩余时间
 var unlocked := false    # machine／tune 解锁标记
 var hint_cd := 0.0
+var _collected := false
 var anim_t := 0.0
 
 const TIER_SCALE := {"normal": 0.9, "key": 1.05, "core": 1.2, "edge": 1.2, "hidden": 1.45}
@@ -67,6 +68,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	anim_t += delta
 	hint_cd = maxf(hint_cd - delta, 0.0)
+	# 解锁／显形可能发生在玩家已站进判定圈之后（body_entered 不会重发）——轮询兜底
+	if _collectible_now():
+		for b in get_overlapping_bodies():
+			if b.is_in_group("player"):
+				_do_collect()
+				return
 	# detect 显形倒计时
 	if req == "detect" and reveal_t > 0.0:
 		reveal_t -= delta
@@ -110,6 +117,12 @@ func _on_body_entered(body: Node) -> void:
 	if not _collectible_now():
 		_hint()
 		return
+	_do_collect()
+
+func _do_collect() -> void:
+	if _collected:
+		return
+	_collected = true
 	GameState.collect(trait_id)
 	var n := clampi(GameState.collected.size(), 1, 5)
 	AudioDirector.sfx_play("collect%d" % n)
@@ -131,3 +144,6 @@ func _hint() -> void:
 			m.call("hint", "回声机还没有认可你。先用它的音序回答它。")
 		"tune":
 			m.call("hint", "空腔还在等。它要的是和你声部槽里一模一样的组合。")
+		_:
+			if visible_after_count > 0:
+				m.call("hint", "（它还没显形——也许在等另一个声音与它同时在场。）")

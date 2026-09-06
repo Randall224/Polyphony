@@ -41,9 +41,12 @@ func set_deafness(x: float) -> void:
 func _on_chaos_changed(v: float) -> void:
 	set_deafness(v / GameState.CHAOS_MAX)
 
+const MUSIC_DB := -9.0        # BGM 垫底音量（太满会压过收集音效与幻声）
+const MUSIC_DUCK_DB := -22.0  # 止语凹地低伏
+
 func set_music_duck(on: bool) -> void:
 	if music_player:
-		music_player.volume_db = -14.0 if on else 0.0
+		music_player.volume_db = MUSIC_DUCK_DB if on else MUSIC_DB
 
 func _load_sfx() -> void:
 	var names := [
@@ -67,6 +70,7 @@ func _start_bgm() -> void:
 		stream.loop_end = stream.data.size() / 2   # 16-bit mono：2 字节一帧
 		music_player.stream = stream
 	add_child(music_player)
+	music_player.volume_db = MUSIC_DB
 	music_player.play()
 
 func _process(_delta: float) -> void:
@@ -89,6 +93,14 @@ func breath_window_open() -> bool:
 	var period := beat_len * BREATH_EVERY_BEATS
 	var phase := fmod(_time, period)
 	return phase < 0.4 or phase > period - 0.4
+
+func _input(event: InputEvent) -> void:
+	# 音乐开关（M）——BGM 为占位循环，允许玩家随时静音
+	if event.is_action_pressed("music_toggle") and music_player:
+		if music_player.playing:
+			music_player.stop()
+		else:
+			music_player.play()
 
 func sfx_play(name: String) -> void:
 	if not sfx.has(name):

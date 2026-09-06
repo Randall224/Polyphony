@@ -53,12 +53,19 @@ func trait_tier(id: String) -> String:
 var chaos := 0.0
 var chaos_base := 0.0
 var collected: Array[String] = []
-var slots: Array[String] = ["chuxiang", "", ""]
+var slots: Array[String] = ["", "", ""]   # 开局空槽——初响要靠捡（修"开局凭空有特质"）
 var respawn_point := Vector2(100, 890)
 var tune_ok_count := 0
 var purify_count := 0
 var shatter_count := 0
 var lib_open := false
+var input_device := "kb"   # "kb"／"pad"：按最后使用的输入设备自适应 UI 提示
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		input_device = "pad"
+	elif event is InputEventKey or event is InputEventMouseButton:
+		input_device = "kb"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS   # 暂停时仍服务（库面板等）
@@ -76,7 +83,13 @@ func _setup_input() -> void:
 	_add_action("tune_beat",   [KEY_ENTER, KEY_E])
 	_add_action("library",     [KEY_TAB])
 	_add_action("drop",        [KEY_Q])
-	# Xbox 手柄（布局以 XBOX 手柄为准）
+	_add_action("help",        [KEY_H])
+	_add_action("music_toggle", [KEY_M])
+	_add_action("voice_1",     [KEY_J])
+	_add_action("voice_2",     [KEY_K])
+	_add_action("voice_3",     [KEY_L])
+	# Xbox 手柄（布局以 XBOX 手柄为准；X/B/Y＝发音 1/2/3，RB/RT＝调声，LB/LT＝探测，
+	# A＝跳，Start＝特质库，Back＝库内卸下）
 	_add_joy("move_left",   [JOY_BUTTON_DPAD_LEFT],  [[JOY_AXIS_LEFT_X, -1.0]])
 	_add_joy("move_right",  [JOY_BUTTON_DPAD_RIGHT], [[JOY_AXIS_LEFT_X, 1.0]])
 	_add_joy("move_up",     [JOY_BUTTON_DPAD_UP],    [[JOY_AXIS_LEFT_Y, -1.0]])
@@ -88,6 +101,8 @@ func _setup_input() -> void:
 	_add_joy("tune_beat",   [JOY_BUTTON_RIGHT_SHOULDER], [[JOY_AXIS_TRIGGER_RIGHT, 1.0]])
 	_add_joy("detect",      [JOY_BUTTON_LEFT_SHOULDER],  [[JOY_AXIS_TRIGGER_LEFT, 1.0]])
 	_add_joy("library",     [JOY_BUTTON_START], [])
+	_add_joy("drop",        [JOY_BUTTON_BACK], [])
+	_add_joy("help",        [JOY_BUTTON_BACK], [])   # 世界内 Back＝求助；库内 Back＝卸下（上下文不冲突）
 
 func _add_joy(action: String, buttons: Array, axes: Array) -> void:
 	if not InputMap.has_action(action):
@@ -101,9 +116,6 @@ func _add_joy(action: String, buttons: Array, axes: Array) -> void:
 		ev2.axis = a[0]
 		ev2.axis_value = a[1]
 		InputMap.action_add_event(action, ev2)
-	_add_action("voice_1",     [KEY_J])
-	_add_action("voice_2",     [KEY_K])
-	_add_action("voice_3",     [KEY_L])
 
 func _add_action(action: String, keys: Array) -> void:
 	if InputMap.has_action(action):
@@ -144,9 +156,13 @@ func slot_trait(i: int) -> String:
 	return slots[i] if i < slots.size() else ""
 
 ## 将库中选中的特质装进指定声部槽（Tab 库面板使用）
+## 同一特质只占一个声部：装入前先从其他槽位移除（移动语义）
 func equip(slot: int, id: String) -> void:
 	if slot < 0 or slot >= slots.size() or not (id in collected):
 		return
+	for i in range(slots.size()):
+		if i != slot and slots[i] == id:
+			slots[i] = ""
 	slots[slot] = id
 	recalc_base()
 	slots_changed.emit()
