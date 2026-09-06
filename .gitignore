@@ -1,0 +1,12 @@
+# Godot 4 缓存与生成物
+.godot/
+*.translation
+export_presets.cfg
+
+# 第三方工具（Godot 引擎本体约 150MB，不入库——下载地址见 README）
+03-Tools/
+
+# 系统杂项
+Thumbs.db
+Desktop.ini
+.DS_Store
